@@ -5,10 +5,15 @@ from matplotlib.transforms import Affine2D
 import sys, getopt
 
 # Initial state [x, y, theta]
-q = np.array([1.0, 1.0, 0.0])
+init_x = 1
+init_y = 1
+init_q = np.array([init_x, init_y, 0.0])
+q = init_q
 
 # Control input [v, omega]
-u = np.array([0.0, 0.0])
+init_v = 0.4
+init_o = 0.5
+u = np.array([init_v, init_o])
 
 # Robot dimensions
 length = 0.2
@@ -17,8 +22,7 @@ width = 0.1
 # Time step
 dt = 0.1
 
-init_v = 0.5
-init_o = 0.2
+
 
 # Control limits
 v_max = 0.5
@@ -141,21 +145,26 @@ def draw_rotated_rectangle(ax, center, width, height, angle_degrees, color='b'):
 def main(argv):
 
     global q
+    global u
+    init_v = 0.4
+    init_o = 0.5
+    u = np.array([init_v, init_o])
 
+    msg1="\nno input constant control, default v = "+str(init_v)+" omaga = "+str(init_o)
+    msg2="\ninvlaid input parmamerts, default v = "+str(init_v)+" omaga = "+str(init_o)
+    defaultMsg = msg1
 
-    if len(argv) == 0:
-        print("no input constant control, default to v=0.2 and omaga = 0.2")
+    if len(argv) < 3:
+        print(msg1)
     else:
-        opts, args = getopt.getopt(argv, "", ["ifile=", "ofile="])
-        for opt, arg in opts:
-            if opt in ("--control"):
-                print(arg)
-            else:
-                print("no input constant control, default to v=0.2 and omaga = 0.2")
+        if argv[0] == "--control":
+            init_v=float(argv[1])
+            init_o=float(argv[2])
+            print(init_v, init_o)
+        else:
+            print(msg2)
 
-        # Initialize plot
-        fig, ax = plt.subplots(figsize=(6, 6))
-        # fig.canvas.mpl_connect('key_press_event', on_key)
+    print("initial x = " + str(init_x) + " y = " + str(init_y) + "\n")
 
     # Initialize plot
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -163,13 +172,12 @@ def main(argv):
 
     omega_step = np.pi / 15
     v_step = 0.1
-    u[0] = np.clip(init_v, v_min, v_max)
-    u[1] = np.clip(init_o, omega_min, omega_max)
+    u = np.array([init_v, init_o])
     tireAngle = np.pi / 30
 
 
-    x_max = 4
-    y_max = 4
+    x_max = 2
+    y_max = 2
 
     while True:
         # Update state
@@ -189,11 +197,13 @@ def main(argv):
             # Draw robot body
             draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
 
+
+
             plt.pause(0.05)
         else:
             #move the car to initial state
-            n = np.array([0.1, 0.0])
-            q = np.array([1.0, 1.0, 0.0])
+            u = np.array([init_v, init_o])
+            q = init_q
 
 
 if __name__ == "__main__":
