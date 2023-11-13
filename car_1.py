@@ -25,11 +25,19 @@ omega_min = omega_max*-1
 
 tireAngle=0
 
+tireOffest=0.5
+
 def differential_drive_model(q, u):
     dq = np.zeros_like(q)
-    dq[0] = u[0] * np.cos(q[2]) * dt
-    dq[1] = u[0] * np.sin(q[2]) * dt
-    dq[2] = u[1] * dt
+
+    # q[2] is theta(t)
+    # u[0] is velocity
+    # u[1] is steeringAngle
+
+    dq[0] = u[0] * np.cos(q[2]) * dt # v * cos(theta(t)
+    dq[1] = u[0] * np.sin(q[2]) * dt # v * sin(theta(t)
+    dq[2] = u[0]/length * np.tan(u[1]) * dt  # v/L*tan(steeringAngle)
+
     return dq
 
 
@@ -37,27 +45,41 @@ def on_key(event):
     global u
     global tireAngle
 
-    omega_step = np.pi/50
+    omega_step = np.pi/30
+    v_step = 0.05
 
 
     if event.key == 'up':
-        u[0] = np.clip(u[0] + 0.1, v_min, v_max)
+        u[0] = np.clip(u[0] + v_step, v_min, v_max)
         #tireAngle = 0
+
     elif event.key == 'down':
-        u[0] = np.clip(u[0] - 0.1, v_min, v_max)
+        u[0] = np.clip(u[0] - v_step, v_min, v_max)
         #tireAngle = 0
+
     elif event.key == 'right':
-        u[1] = np.clip(u[1] + omega_step, omega_min, omega_max)
-        if u[1] > 0:
-            tireAngle = np.pi / 30
-        else:
+
+        if u[1] < 0 : #car was steering left, turn it
+            u[1] = 0
             tireAngle = np.pi / 30 * -1
+        else:
+            u[1] = np.clip(u[1] + omega_step, omega_min, omega_max)
+            tireAngle = np.pi / 30
+
+        #if u[0] == 0:
+        #    u[0] = np.clip(u[0] + v_step, v_min, v_max) # if the car stopped, move it
+
     elif event.key == 'left':
         u[1] = np.clip(u[1] - omega_step, omega_min, omega_max)
         if u[1] > 0:
+            u[1] = 0
             tireAngle = np.pi / 30
         else:
+            u[1] = np.clip(u[1] - omega_step, omega_min, omega_max)
             tireAngle = np.pi / 30 * -1
+
+        #if u[0] == 0:
+        #    u[0] = np.clip(u[0] - v_step, v_min, v_max) # if the car stopped, move it
 
 
 def draw_rotated_tire(ax, center, width, height, angle_degrees, color='b'):
@@ -65,15 +87,15 @@ def draw_rotated_tire(ax, center, width, height, angle_degrees, color='b'):
     x, y = center
     t = Affine2D().rotate_deg_around(x, y, angle_degrees) + ax.transData
 
-    xF1 = x + (0.3 * width)
-    yF1 = y + (0.3 * height)
+    xF1 = x + (tireOffest * width)
+    yF1 = y + (tireOffest * height)
     tireFront = patches.Rectangle((xF1 - 0.025, yF1 - 0.01), 0.05, 0.02, linewidth=1, edgecolor='red',
                                   facecolor='red')
     tireFront.set_transform(t)
     ax.add_patch(tireFront)
 
-    xF2 = x + (0.3 * width)
-    yF2 = y - (0.3 * height)
+    xF2 = x + (tireOffest * width)
+    yF2 = y - (tireOffest * height)
     tireFront = patches.Rectangle((xF2 - 0.025, yF2 - 0.01), 0.05, 0.02, linewidth=1, edgecolor='red',
                                   facecolor='red')
     tireFront.set_transform(t)
@@ -93,15 +115,15 @@ def draw_rotated_rectangle(ax, center, width, height, angle_degrees, color='b'):
     ax.add_patch(rect)
 
     # draw Rear Tire
-    xR1 = x - (0.3 * width)
-    yR1 = y + (0.3 * height)
+    xR1 = x - (tireOffest * width)
+    yR1 = y + (tireOffest * height)
     tireRear = patches.Rectangle((xR1 - 0.025, yR1 - 0.01), 0.05, 0.02, linewidth=1, edgecolor='red',
                                  facecolor='none')
     tireRear.set_transform(t)
     ax.add_patch(tireRear)
 
-    xR2 = x - (0.3 * width)
-    yR2 = y - (0.3 * height)
+    xR2 = x - (tireOffest * width)
+    yR2 = y - (tireOffest * height)
     tireRear = patches.Rectangle((xR2 - 0.025, yR2 - 0.01), 0.05, 0.02, linewidth=1, edgecolor='red',
                                  facecolor='none')
     tireRear.set_transform(t)
@@ -119,6 +141,11 @@ def main(argv):
     # Initialize plot
     fig, ax = plt.subplots(figsize=(6, 6))
     fig.canvas.mpl_connect('key_press_event', on_key)
+
+    #initial theta = 0
+    #initial velocity = 0
+    u[0] = 0
+    u[1] = 0
 
     while True:
         # Update state
