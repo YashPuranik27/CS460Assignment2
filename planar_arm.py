@@ -1,14 +1,12 @@
-# Original code from assignment 1
-
-import numpy as np
-import matplotlib
-
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-
-from collision_checking import collides_SAT
+from create_scene import load_polygons
+from collision_checking import *
 from matplotlib.colors import *
 from matplotlib.patches import *
+import matplotlib.patches as patches
+from numpy import degrees
+import matplotlib.pyplot as plt
+
+import numpy as np
 
 
 class PlanarArm:
@@ -171,6 +169,172 @@ class PlanarArm:
         plt.show()
 
 
-fig, ax = plt.subplots()
-robot = PlanarArm(ax)
-plt.show()
+class Control_Arm:
+
+    @staticmethod
+    def calculate_rectangle(theta, center, rad, width):
+        x, y = rad * np.cos(theta), rad * np.sin(theta)
+        orth_x, orth_y = -y / rad, x / rad
+        return center[0] + x + orth_x * width / 2, center[1] + y + orth_y * width / 2
+
+    @staticmethod
+    def calculate_circle(theta, center, rad, rlen):
+        total_rad = rad * 2 + rlen
+        return center[0] + total_rad * np.cos(theta), center[1] + total_rad * np.sin(theta)
+
+    def __init__(self, theta1, theta2, ax=create_plot(), polygons=[]):
+        if ax is None:
+            ax = create_plot()
+        if polygons is None:
+            polygons = []
+        self.ax = ax
+        self.joint1 = (1, 1)
+        self.rad = 0.05
+        self.rwid = 0.1
+        self.rlen1 = 0.3
+        self.rlen2 = 0.15
+        self.theta1 = theta1
+        self.theta2 = theta2
+        self.anchor1 = Control_Arm.calculate_rectangle(self.theta1, self.joint1, self.rad, self.rwid)
+        self.joint2 = Control_Arm.calculate_circle(self.theta1, self.joint1, self.rad, self.rlen1)
+        self.anchor2 = Control_Arm.calculate_rectangle(self.theta2, self.joint2, self.rad, self.rwid)
+        self.joint3 = Control_Arm.calculate_circle(self.theta2, self.joint2, self.rad, self.rlen2)
+        self.polygons = polygons
+
+    def joint_angle(self, angles):
+        self.theta1, self.theta2 = angles
+
+    def print_arm(self, collisions=[False] * 5):
+        self.ax.clear()
+        self.set_plot()
+        components = [
+            patches.Circle(self.joint1, self.rad, fill=True, color='b' if not collisions[0] else 'r'),
+            patches.Rectangle(self.anchor1, self.rwid, self.rlen1, angle=degrees(self.theta1 - np.pi / 2), fill=True,
+                              color='g' if not collisions[3] else 'r'),
+            patches.Circle(self.joint2, self.rad, fill=True, color='b' if not collisions[1] else 'r'),
+            patches.Rectangle(self.anchor2, self.rwid, self.rlen2, angle=degrees(self.theta2 - np.pi / 2), fill=True,
+                              color='g' if not collisions[4] else 'r'),
+            patches.Circle(self.joint3, self.rad, fill=True, color='b' if not collisions[2] else 'r')
+        ]
+
+        for component in components:
+            self.ax.add_patch(component)
+
+        self.ax.set_xlim([0, 2])
+        self.ax.set_ylim([0, 2])
+        plt.draw()
+        plt.pause(1e-5)
+
+    # Draws the arm without adding it to the scene
+    def add_more_arm(self, color='b', collisions=[False] * 5):
+        comp = [patches.Circle(self.joint1, self.rad, fill=True, color=color),
+                patches.Circle(self.joint2, self.rad, fill=True, color=color),
+                patches.Circle(self.joint3, self.rad, fill=True, color=color),
+                patches.Rectangle(self.anchor1, self.rwid, self.rlen1, angle=degrees(self.theta1 - np.pi / 2),
+                                  fill=False, color=color),
+                patches.Rectangle(self.anchor2, self.rwid, self.rlen2, angle=degrees(self.theta2 - np.pi / 2),
+                                  fill=False, color=color)]
+
+        for i, collision in enumerate(collisions):
+            if collision:
+                comp[i].set_color('r')
+
+        for element in comp:
+            self.ax.add_patch(element)
+
+    def change_orientation(self):
+        self.anchor1 = Control_Arm.calculate_rectangle(self.theta1, self.joint1, self.rad, self.rwid)
+        self.joint2 = Control_Arm.calculate_circle(self.theta1, self.joint1, self.rad, self.rlen1)
+        self.anchor2 = Control_Arm.calculate_rectangle(self.theta2, self.joint2, self.rad, self.rwid)
+        self.joint3 = Control_Arm.calculate_circle(self.theta2, self.joint2, self.rad, self.rlen2)
+
+    def initial_collision_avoider(self):
+        self.theta1, self.theta2 = 0, 0
+        colliding_polygons = self.check_collisions_from_arm(signal=True)
+        self.polygons = np.array([poly for poly in self.polygons if poly not in colliding_polygons], dtype=object)
+
+    @staticmethod
+    def get_rectangle_angles(anchor, width, height, angle):
+        # Create a rotation matrix and rectangle corners
+        c, s = np.cos(angle), np.sin(angle)
+        rotation_matrix = np.array([[c, -s], [s, c]])
+        corners = np.array([[0, 0], [width, 0], [width, height], [0, height]])
+
+        # Apply rotation and translation in one step
+        return np.dot(corners, rotation_matrix.T) + anchor
+
+    def set_arms(self, polygons):
+        self.polygons = polygons
+
+    def set_plot(self):
+        for p in self.polygons:
+            add_polygon_to_scene(p, self.ax, False)
+
+    def check_collisions_from_arm(self, signal=False):
+        circles = [self.joint1, self.joint2, self.joint3]
+        rectangles = [Control_Arm.get_rectangle_angles(self.anchor1, self.rwid, self.rlen1, self.theta1 - np.pi / 2),
+                      Control_Arm.get_rectangle_angles(self.anchor2, self.rwid, self.rlen2, self.theta2 - np.pi / 2)]
+        circ_boxes = [bound_circle(circle, self.rad) for circle in circles]
+        rec_boxes = bound_polygons(rectangles)
+        poly_boxes = bound_polygons(self.polygons)
+
+        possible_circle_collisions = [(circles[i], self.polygons[j]) for i in range(len(circles))
+                                      for j in range(len(self.polygons)) if
+                                      check_box_collision(circ_boxes[i], poly_boxes[j])]
+
+        possible_rect_collisions = [(rectangles[i], self.polygons[j]) for i in range(len(rectangles))
+                                    for j in range(len(self.polygons)) if
+                                    check_box_collision(rec_boxes[i], poly_boxes[j])]
+
+        colliding_polygons = []
+        joint_coll = [False] * 3
+        for circle, polygon in possible_circle_collisions:
+            if circle_poly_collides(circle, self.rad, polygon):
+                colliding_polygons.append(polygon)
+                joint_coll[circles.index(circle)] = True
+
+        arm_coll = [False] * 2
+        for rect, polygon in possible_rect_collisions:
+            if SAT_Collides(rect, polygon):
+                colliding_polygons.append(polygon)
+                for i, rectangle in enumerate(rectangles):
+                    if np.array_equal(rect, rectangle):
+                        arm_coll[i] = True
+                        break
+
+        return colliding_polygons if signal else joint_coll + arm_coll
+
+
+def change_angles(x, zero_2_2pi=False, degree=False):
+    # Determine the data type of the input
+    is_float = isinstance(x, float)
+
+    # Convert the input to a flattened numpy array and convert to radians if necessary
+    x = np.asarray(x).flatten()
+    if degree:
+        x = np.deg2rad(x)
+
+    # Calculate the modulus of the angle
+    mod_angle = x % (2 * np.pi) if zero_2_2pi else (x + np.pi) % (2 * np.pi) - np.pi
+
+    # Convert back to degrees if necessary
+    if degree:
+        mod_angle = np.rad2deg(mod_angle)
+
+    # Return a scalar if the input was a float, otherwise return the array
+    return mod_angle.item() if is_float else mod_angle
+
+
+def main():
+    fig, ax = plt.subplots(dpi=100)
+    arm = Control_Arm(0, 0, ax)
+    obstacles = load_polygons('arm_polygons.npy')
+    arm.set_arms(obstacles)
+    arm.initial_collision_avoider()
+    arm.set_plot()
+    arm.print_arm()
+    show_scene(arm.ax)
+
+
+if __name__ == '__main__':
+    main()
