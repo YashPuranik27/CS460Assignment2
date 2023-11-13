@@ -66,8 +66,8 @@ def on_key(event):
             u[1] = np.clip(u[1] + omega_step, omega_min, omega_max)
             tireAngle = np.pi / 30
 
-        #if u[0] == 0:
-        #    u[0] = np.clip(u[0] + v_step, v_min, v_max) # if the car stopped, move it
+        #if float(u[0]) == float(0.0):
+            #u[0] = np.clip(u[0] + v_step, v_min, v_max) # if the car stopped, move it
 
     elif event.key == 'left':
         u[1] = np.clip(u[1] - omega_step, omega_min, omega_max)
@@ -78,8 +78,8 @@ def on_key(event):
             u[1] = np.clip(u[1] - omega_step, omega_min, omega_max)
             tireAngle = np.pi / 30 * -1
 
-        #if u[0] == 0:
-        #    u[0] = np.clip(u[0] - v_step, v_min, v_max) # if the car stopped, move it
+        #if float(u[0]) == float(0.0):
+            #u[0] = np.clip(u[0] - v_step, v_min, v_max) # if the car stopped, move it
 
 
 def draw_rotated_tire(ax, center, width, height, angle_degrees, color='b'):
@@ -144,8 +144,7 @@ def main(argv):
 
     #initial theta = 0
     #initial velocity = 0
-    u[0] = 0
-    u[1] = 0
+    n = np.array([0.1, 0.0])
 
     while True:
         # Update state
@@ -158,13 +157,18 @@ def main(argv):
         plt.xlim(0, 2)
         plt.ylim(0, 2)
 
-        # Draw Front Tire
-        draw_rotated_tire(ax, [q[0], q[1]], length, width, np.degrees(q[2] + tireAngle))
+        if (q[0]<2 and q[1]<2 and q[0]>0 and q[1]>0 ):
+            # Draw Front Tire
+            draw_rotated_tire(ax, [q[0], q[1]], length, width, np.degrees(q[2] + tireAngle))
 
-        # Draw robot body
-        draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
+            # Draw robot body
+            draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
 
-        plt.pause(0.05)
+            plt.pause(0.05)
+        else:
+            #move the car to initial state
+            n = np.array([0.1, 0.0])
+            q = np.array([1.0, 1.0, 0.0])
 
 
 if __name__ == "__main__":
