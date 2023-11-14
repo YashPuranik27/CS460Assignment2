@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.transforms import Affine2D
 import sys, getopt
+from create_scene import create_plot, add_polygon_to_scene, load_polygons, show_scene
 
 # Initial state [x, y, theta]
 init_x = 1
@@ -170,6 +171,9 @@ def main(argv):
     fig, ax = plt.subplots(figsize=(6, 6))
     #fig.canvas.mpl_connect('key_press_event', on_key)
 
+    poly_map = load_polygons("rigid_polygons.npy")
+
+
     omega_step = np.pi / 15
     v_step = 0.1
     u = np.array([init_v, init_o])
@@ -179,16 +183,20 @@ def main(argv):
     x_max = 2
     y_max = 2
 
+    #ax = create_plot()
+    plt.clf()
+    ax = plt.gca()
+    plt.xlim(0, x_max)
+    plt.ylim(0, y_max)
+    [add_polygon_to_scene(poly, ax, True) for poly in poly_map]
+
     while True:
         # Update state
         dq = differential_drive_model(q, u)
         q += dq
 
         # Visualization
-        plt.clf()
-        ax = plt.gca()
-        plt.xlim(0, x_max)
-        plt.ylim(0, y_max)
+
 
         if (q[0]<x_max and q[1]<y_max and q[0]>0 and q[1]>0 ):
             # Draw Front Tire
@@ -197,9 +205,9 @@ def main(argv):
             # Draw robot body
             draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
 
-
-
+            show_scene(ax)
             plt.pause(0.05)
+
         else:
             #move the car to initial state
             u = np.array([init_v, init_o])
