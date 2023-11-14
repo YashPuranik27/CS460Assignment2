@@ -14,8 +14,7 @@ u = np.array([0.0, 0.0])
 length = 0.2
 width = 0.1
 
-# Time step
-dt = 0.1
+
 
 # Control limits
 v_max = 0.5
@@ -31,7 +30,8 @@ tireOffest=0.5
 class PlanarCar:
 
     def __init__(self):
-        pass
+        # Time step
+        self.dt = 0.1
 
     def differential_drive_model(self, q, u):
         dq = np.zeros_like(q)
@@ -40,9 +40,9 @@ class PlanarCar:
         # u[0] is velocity
         # u[1] is steeringAngle
 
-        dq[0] = u[0] * np.cos(q[2]) * dt # v * cos(theta(t)
-        dq[1] = u[0] * np.sin(q[2]) * dt # v * sin(theta(t)
-        dq[2] = u[0]/length * np.tan(u[1]) * dt  # v/L*tan(steeringAngle)
+        dq[0] = u[0] * np.cos(q[2]) * self.dt # v * cos(theta(t))
+        dq[1] = u[0] * np.sin(q[2]) * self.dt # v * sin(theta(t))
+        dq[2] = u[0]/length * np.tan(u[1]) * self.dt  # v/L*tan(steeringAngle)
 
         return dq
 
@@ -128,7 +128,6 @@ class PlanarCar:
                                  facecolor='none')
         tireRear.set_transform(t)
         ax.add_patch(tireRear)
-
 
 
 #read input control
