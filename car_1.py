@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.transforms import Affine2D
 import sys, getopt
+import argparse
 
 # Initial state [x, y, theta]
 init_x = 1
@@ -150,19 +151,13 @@ def main(argv):
     init_o = 0.5
     u = np.array([init_v, init_o])
 
-    msg1="\nno input constant control, default v = "+str(init_v)+" omaga = "+str(init_o)
-    msg2="\ninvlaid input parmamerts, default v = "+str(init_v)+" omaga = "+str(init_o)
-    defaultMsg = msg1
+    parser = argparse.ArgumentParser(description="Find robot moving in a free workspace.")
+    parser.add_argument('--control', type=float, nargs=2, required=True, help='constant control -- v theta')
+    args = parser.parse_args()
+    print(args)
 
-    if len(argv) < 3:
-        print(msg1)
-    else:
-        if argv[0] == "--control":
-            init_v=float(argv[1])
-            init_o=float(argv[2])
-            print(init_v, init_o)
-        else:
-            print(msg2)
+    init_v=args.control[0]
+    init_o=args.control[1]
 
     print("initial x = " + str(init_x) + " y = " + str(init_y) + "\n")
 
