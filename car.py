@@ -5,15 +5,10 @@ from matplotlib.transforms import Affine2D
 import sys, getopt
 
 # Initial state [x, y, theta]
-init_x = 1
-init_y = 1
-init_q = np.array([init_x, init_y, 0.0])
-q = init_q
+q = np.array([1.0, 1.0, 0.0])
 
 # Control input [v, omega]
-init_v = 0.4
-init_o = 0.5
-u = np.array([init_v, init_o])
+u = np.array([0.0, 0.0])
 
 # Robot dimensions
 length = 0.2
@@ -21,8 +16,6 @@ width = 0.1
 
 # Time step
 dt = 0.1
-
-
 
 # Control limits
 v_max = 0.5
@@ -89,7 +82,6 @@ def on_key(event):
             #u[0] = np.clip(u[0] - v_step, v_min, v_max) # if the car stopped, move it
 
 
-
 def draw_rotated_tire(ax, center, width, height, angle_degrees, color='b'):
 
     x, y = center
@@ -145,39 +137,14 @@ def draw_rotated_rectangle(ax, center, width, height, angle_degrees, color='b'):
 def main(argv):
 
     global q
-    global u
-    init_v = 0.4
-    init_o = 0.5
-    u = np.array([init_v, init_o])
-
-    msg1="\nno input constant control, default v = "+str(init_v)+" omaga = "+str(init_o)
-    msg2="\ninvlaid input parmamerts, default v = "+str(init_v)+" omaga = "+str(init_o)
-    defaultMsg = msg1
-
-    if len(argv) < 3:
-        print(msg1)
-    else:
-        if argv[0] == "--control":
-            init_v=float(argv[1])
-            init_o=float(argv[2])
-            print(init_v, init_o)
-        else:
-            print(msg2)
-
-    print("initial x = " + str(init_x) + " y = " + str(init_y) + "\n")
 
     # Initialize plot
     fig, ax = plt.subplots(figsize=(6, 6))
-    #fig.canvas.mpl_connect('key_press_event', on_key)
+    fig.canvas.mpl_connect('key_press_event', on_key)
 
-    omega_step = np.pi / 15
-    v_step = 0.1
-    u = np.array([init_v, init_o])
-    tireAngle = np.pi / 30
-
-
-    x_max = 2
-    y_max = 2
+    #initial theta = 0
+    #initial velocity = 0
+    n = np.array([0.1, 0.0])
 
     while True:
         # Update state
@@ -187,24 +154,25 @@ def main(argv):
         # Visualization
         plt.clf()
         ax = plt.gca()
-        plt.xlim(0, x_max)
-        plt.ylim(0, y_max)
+        plt.xlim(0, 2)
+        plt.ylim(0, 2)
 
-        if (q[0]<x_max and q[1]<y_max and q[0]>0 and q[1]>0 ):
+        if (q[0]<2 and q[1]<2 and q[0]>0 and q[1]>0 ):
             # Draw Front Tire
             draw_rotated_tire(ax, [q[0], q[1]], length, width, np.degrees(q[2] + tireAngle))
 
             # Draw robot body
             draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
 
-
-
             plt.pause(0.05)
         else:
             #move the car to initial state
-            u = np.array([init_v, init_o])
-            q = init_q
+            n = np.array([0.1, 0.0])
+            q = np.array([1.0, 1.0, 0.0])
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
+
