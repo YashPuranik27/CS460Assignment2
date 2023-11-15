@@ -1,9 +1,8 @@
 import argparse
 from math import radians
-from planar_arm import Arm_Controller
+from planar_arm import Control_Arm
 
 
-# Interpolate points on a line segment
 def interpolate(start, goal, resolution):
     slope = (goal[1] - start[1]) / (goal[0] - start[0])
     num_points = abs(int((goal[0] - start[0]) / resolution)) + 1
@@ -12,7 +11,18 @@ def interpolate(start, goal, resolution):
     return points + [goal] if points[-1] != goal else points
 
 
-# Main function to parse arguments and visualize arm movement
+def arm_move(disc, args):
+    planar_arm = Control_Arm(*args.start)
+    for pt in disc:
+        print(pt)
+        planar_arm.joint_angle(pt)
+        planar_arm.change_orientation()
+        planar_arm.ax.cla()
+        planar_arm.print_arm()
+        planar_arm.ax.figure.canvas.draw()
+    print('success')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--start', nargs=2, type=float, required=True, help='Start config radians.')
@@ -20,16 +30,7 @@ def main():
     args = parser.parse_args()
 
     discretized_pts = interpolate(args.start, args.goal, radians(5))
-
-    planar_arm = Arm_Controller(*args.start)
-    for pt in discretized_pts:
-        print(pt)
-        planar_arm.set_joint_angles(pt)
-        planar_arm.re_orient()
-        planar_arm.ax.cla()
-        planar_arm.draw_arm()
-        planar_arm.ax.figure.canvas.draw()
-    print('success')
+    arm_move(discretized_pts, args)
 
 
 if __name__ == '__main__':
