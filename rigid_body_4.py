@@ -3,7 +3,7 @@ from math import pi, sqrt
 from rigid_body import CarController, check_car
 from create_scene import load_polygons
 from rigid_body_1 import make_rigid_body
-from rigid_body_3 import interpolate, reposition_car
+from rigid_body_3 import interpolate, change_car
 from planar_arm import change_angles
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,11 +11,8 @@ import matplotlib.pyplot as plt
 
 class tree:
     def __init__(self, x, y, theta):
-        self.x = x  # x coord
-        self.y = y  # ycoord
-        self.theta = theta  # angle of rigid body
-        self.children = []  # all neighboring nodes
-        self.parent = None
+        self.x, self.y, self.theta = x, y, theta
+        self.children, self.parent = [], None
 
 
 class rotate:
@@ -62,9 +59,8 @@ class rotate:
                 self.nearest(child, point)
 
     def space(self, node1, point):
-        linear_distance = sqrt((node1.x - point[0]) ** 2 + (node1.y - point[1]) ** 2)
-        angular_distance = abs(change_angles(node1.theta) - change_angles(point[2]))
-        return 0.7 * linear_distance + 0.3 * angular_distance
+        return 0.7 * sqrt((node1.x - point[0]) ** 2 + (node1.y - point[1]) ** 2) + \
+            0.3 * abs(change_angles(node1.theta) - change_angles(point[2]))
 
     def goal(self, point, obstacles):
         return self.space(self.goal, point) <= self.rho and not self.obstacle(self.currentNode,
@@ -98,7 +94,7 @@ def calculate_tree(start, goal, obstacles):
         new = rrt.search_point(rrt.nearestNode, point)
         if not rrt.obstacle(rrt.nearestNode, new, obstacles):
             rrt.child_node(*new)
-            if rrt.goal(new, obstacles):
+            if rrt.goal:
                 rrt.child_node(*goal)
                 print("Goal Found")
                 break
@@ -124,7 +120,7 @@ def graph(start, rig_body, waypoints, obstacles):
 def move_graph(rig_body, start, goal, obstacles):
     for pt in interpolate(start, goal, 0.01):
         print(pt)
-        reposition_car(pt, rig_body)
+        change_car(pt, rig_body)
         if not check_car(rig_body.car, obstacles):
             print("true")
         update_visuals(rig_body, obstacles)
