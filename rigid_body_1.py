@@ -11,7 +11,7 @@ def make_rigid_body(center, angle=0, opacity=1):
     return patches.Rectangle(
         (center[0] - .1, center[1] - .05), .2, .1, linewidth=1,
         angle=degrees(angle), rotation_point='center',
-        edgecolor='r', facecolor='black', alpha=opacity
+        edgecolor='r', facecolor='red', alpha=opacity
     )
 
 
