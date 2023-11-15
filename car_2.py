@@ -6,6 +6,7 @@ from math import pi, radians, floor, sqrt
 from planar_car import PlanarCar
 import argparse
 import math
+import scipy
 
 from collision_checking import collides_SAT
 
@@ -62,6 +63,7 @@ class RRT():
         self.path_distance, self.nearestDist, self.numWaypoints = 0, float('inf'), 0
         self.nearestNode, self.Waypoints = None, []
         self.polyMap = []
+        self.drivePath=[]
 
     #plan a path from start to end points
     def plan(self, start, end):
@@ -74,7 +76,7 @@ class RRT():
     # sample a set of random controls
     def sampleControl(self):
         controls = []
-        for i in range(6):
+        for i in range(1):
             controls.append((np.random.randint(-5, 5+1), np.random.randint(-8, 8+1)))
         controls = np.array(controls)/10
         return  controls
@@ -136,6 +138,7 @@ class RRT():
         if (goal.x, goal.y) != (self.randomTree.x, self.randomTree.y):
             self.numWaypoints += 1
             self.Waypoints.insert(0, np.array([goal.x, goal.y]))
+            self.drivePath.append(goal)
             self.path_distance += self.rho
             self.retracePath(goal.parent)
 
@@ -270,11 +273,31 @@ def rrt_tree(ax, start, goal, car, poly_map):
 
     rrt.retracePath(rrt.goal)
     rrt.Waypoints.insert(0, start)
+    rrt.drivePath.append(treeNode(*start))
     waypoint_pairs = zip(rrt.Waypoints[:-1], rrt.Waypoints[1:])
 
     for (wp_start, wp_end) in waypoint_pairs:
         ax.plot([wp_start[0], wp_end[0]], [wp_start[1], wp_end[1]], 'ro', linestyle="--")
 
+    j = len(rrt.drivePath)-1
+    for i in range(len(rrt.drivePath)):
+        node = rrt.drivePath[j]
+        print("drive path ", node.x, node.y, node.theta)
+        # move the car
+        # Draw Front Tire
+        q = np.array([node.x, node.y, node.theta])
+
+        # Control input [v, omega]
+        u = np.array([node.control[0], node.control[1]])
+        car.dt = 0.1
+        dq = car.differential_drive_model(q, u)
+        q += dq
+        car.draw_rotated_tire(ax, [q[0], q[1]], length, width, np.degrees(q[2] + tireAngle))
+
+        # Draw robot body
+        car.draw_rotated_rectangle(ax, [q[0], q[1]], length, width, np.degrees(q[2]))
+
+        j=j-1
 
 
     plt.pause(1)
