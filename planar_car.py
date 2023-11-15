@@ -55,15 +55,15 @@ class PlanarCar:
         v_step = 0.05
 
 
-        if event.key == 'right':
+        if event.key == 'up':
             u[0] = np.clip(u[0] + v_step, v_min, v_max)
             #tireAngle = 0
 
-        elif event.key == 'left':
+        elif event.key == 'down':
             u[0] = np.clip(u[0] - v_step, v_min, v_max)
             #tireAngle = 0
 
-        elif event.key == 'up':
+        elif event.key == 'left':
 
             if u[1] < 0 : #car was steering left, turn it
                 u[1] = 0
@@ -72,7 +72,7 @@ class PlanarCar:
                 u[1] = np.clip(u[1] + omega_step, omega_min, omega_max)
                 tireAngle = np.pi / 30
 
-        elif event.key == 'down':
+        elif event.key == 'right':
 
             if u[1] > 0:
                 u[1] = 0
