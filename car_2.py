@@ -193,6 +193,10 @@ class RRT():
 
         return False
 
+    def offMap(self, node):
+        if (node.x < x_min) or (node.y < x_min) or (node.x > x_max) or (node.y > x_max):
+            return True
+        return False
 
 # End of RRT Claass =========================================================
 
@@ -228,22 +232,28 @@ def rrt_tree(ax, start, goal, car, poly_map):
 
         closest = 999
         #loop through the control samples
+        newNodeFound = False
         for control in controls:
             newNode = rrt.findNewNode(rrt.nearestNode, car, control)
-            print("============newNode")
-            distance = newNode.distance(rrt.nearestNode)
-            if distance < closest:
-                closest = distance
-                closestNewNode = newNode
-            print(control, newNode.x, newNode.y, newNode.theta, "-----", distance)
+            if (not rrt.offMap(newNode)) and (not rrt.isInObstacle(rrt.nearestNode, newNode, poly_map) ):
+                print("============newNode")
+                distance = newNode.distance(rrt.nearestNode)
+                if distance < closest:
+                    closest = distance
+                    closestNewNode = newNode
+                    newNodeFound = True
+
+                    print(control, newNode.x, newNode.y, newNode.theta, "-----", distance)
 
         print("closestNewNode", closestNewNode.x, closestNewNode.y)
 
         #new_point = rrt.goToPoint(rrt.nearestNode, point)
 
-        new_point =  closestNewNode
 
-        if not rrt.isInObstacle(rrt.nearestNode, new_point, poly_map):
+        if newNodeFound:
+            new_point =  closestNewNode
+
+            #if not rrt.isInObstacle(rrt.nearestNode, new_point, poly_map):
             rrt.addChild(new_point)
             ax.plot([rrt.nearestNode.x, new_point.x], [rrt.nearestNode.y, new_point.y], 'go', linestyle="--")
             plt.pause(0.01)
@@ -252,11 +262,11 @@ def rrt_tree(ax, start, goal, car, poly_map):
                 rrt.addChild(treeNode(*goal))
                 print("Goal Found")
                 break
-        elif not i:
-            print("Error: Start node in obstacle")
-            break
-    else:
-        plt.pause(1)
+            #elif not i:
+                #print("Error: Start node in obstacle")
+                #break
+            #else:
+                #plt.pause(1)
 
     rrt.retracePath(rrt.goal)
     rrt.Waypoints.insert(0, start)
@@ -324,5 +334,5 @@ if __name__ == '__main__':
 
 
     # Start the RTT tree process
-    car.dt = 1
+    car.dt = 0.8
     rrt_tree(ax, (args.start[0],args.start[1], args.start[2]), (args.goal[0],args.goal[1],args.goal[2]), car, poly_map)
