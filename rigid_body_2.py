@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from create_scene import create_plot, show_scene
-from planar_arm import angle_mod
+from planar_arm import change_angles
 from rigid_body_1 import make_rigid_body
 
 
 def find_smallest_distances(configs, goal, k):
-    distances = [sqrt((c[0] - goal[0]) ** 2 + (c[1] - goal[1]) ** 2) + 0.3 * abs(angle_mod(c[2]) - angle_mod(c[2])) for
+    distances = [sqrt((c[0] - goal[0]) ** 2 + (c[1] - goal[1]) ** 2) + 0.3 * abs(change_angles(c[2]) - change_angles(c[2])) for
                  c in configs]
     return np.array(configs)[np.argsort(distances)[:k]]
 
