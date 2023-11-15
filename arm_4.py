@@ -3,9 +3,10 @@ import argparse
 from math import pi, radians, floor, sqrt
 import random
 from create_scene import load_polygons
-from planar_arm import Arm_Controller, angle_mod
+from planar_arm import Control_Arm, change_angles
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 class treeNode:
     def __init__(self, x, y):
@@ -27,19 +28,15 @@ class RTT:
         return np.array(goal if random.random() < 0.05 else [random.uniform(-pi, pi) for _ in range(2)])
 
     def goToPoint(self, start, end):
-        return np.array([start.x, start.y]) + self.rho * self.unitVector(start, end)
-
+        return np.array([start.x, start.y]) + self.rho * self.vector(start, end)
     def isInObstacle(self, start, end, arm):
-        u_hat = self.unitVector(start, end)
-        for i in range(floor(self.rho / radians(5))):
-            test = [start.x + i * u_hat[0], start.y + i * u_hat[1]]
-            arm.theta1, arm.theta2 = test
-            arm.re_orient()
-            if any(arm.check_arm_collisions()):
-                return True
-        return False
-
-    def unitVector(self, start, end):
+        dx, dy = self.vector(start, end)
+        return any(
+            arm.change_orientation() or any(arm.check_collisions_from_arm())
+            for i in range(floor(self.rho / radians(5)))
+            if setattr(arm, 'theta1', start.x + i * dx) or setattr(arm, 'theta2', start.y + i * dy)
+        )
+    def vector(self, start, end):
         v = np.array([end[0] - start.x, end[1] - start.y])
         return v / np.linalg.norm(v)
 
@@ -127,10 +124,10 @@ def interpolate(start, goal, resolution):
 def move_arm(arm, start, goal):
     for pt in interpolate(start, goal, radians(5)):
         print(pt)
-        arm.set_joint_angles(pt)
-        arm.re_orient()
+        arm.joint_angle(pt)
+        arm.change_orientation()
         arm.ax.cla()
-        arm.draw_arm()
+        arm.print_arm()
         arm.ax.figure.canvas.draw()
 
 
@@ -142,9 +139,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Directly use modified angles and load polygons for the arm controller
-    planar_arm = Arm_Controller(*[angle_mod(arg) for arg in args.start])
-    planar_arm.set_arm_obs(load_polygons(args.map))
+    planar_arm = Control_Arm(*[change_angles(arg) for arg in args.start])
+    planar_arm.set_arms(load_polygons(args.map))
 
     # Start the RTT tree process
-    rtt_tree(np.array([angle_mod(arg) for arg in args.start]), np.array([angle_mod(arg) for arg in args.goal]),
+    rtt_tree(np.array([change_angles(arg) for arg in args.start]), np.array([change_angles(arg) for arg in args.goal]),
              planar_arm)
