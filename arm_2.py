@@ -3,7 +3,7 @@ import argparse
 from math import pi, sqrt
 import random
 from create_scene import create_plot, add_polygon_to_scene, load_polygons, show_scene
-from planar_arm import Arm_Controller
+from planar_arm import Control_Arm
 import numpy as np
 from queue import PriorityQueue
 
@@ -17,13 +17,16 @@ def kd_tree(points, depth=0):
     if not points:
         return None
 
-    split_dim = depth % len(points[0])
-    points.sort(key=lambda x: x[split_dim])
+    k = len(points[0])
+    axis = depth % k
+
+    points.sort(key=lambda point: point[axis])
     median = len(points) // 2
 
-    node = Node(points[median], split_dim)
+    node = Node(points[median], axis)
     node.left = kd_tree(points[:median], depth + 1)
     node.right = kd_tree(points[median + 1:], depth + 1)
+
     return node
 
 
@@ -47,7 +50,7 @@ def k_nearest_neighbors(root, query_point, k):
 
 def find_smallest_distances(pairs, ax, arm, k):
     return [pairs[i] for i in np.argsort(
-        [find_distance(Arm_Controller(theta1, theta2, ax, polygons=[]), arm) for theta1, theta2 in pairs])[:k]]
+        [find_distance(Control_Arm(theta1, theta2, ax, polygons=[]), arm) for theta1, theta2 in pairs])[:k]]
 
 
 def find_smallest_distances_kd(pairs, ax, arm, k):
@@ -69,10 +72,10 @@ if __name__ == '__main__':
 
     # Set up arm and plot
     ax = create_plot()
-    planar_arm = Arm_Controller(*args.target, ax, polygons=[])
-    planar_arm.set_obs_plot()
-    planar_arm.re_orient()
-    planar_arm.add_arm('b')  # Original Target Arm
+    planar_arm = Control_Arm(*args.target, ax, polygons=[])
+    planar_arm.set_plot()
+    planar_arm.change_orientation()
+    planar_arm.add_more_arm('b')  # Original Target Arm
     configs = np.load(args.configs)
     smallest_distances = find_smallest_distances(configs, ax, planar_arm, args.k)
 
@@ -80,6 +83,6 @@ if __name__ == '__main__':
     arm_colors = ['r', 'g', 'b', 'y', 'k']
     for count, (theta1, theta2) in enumerate(smallest_distances + [args.target]):
         planar_arm.theta1, planar_arm.theta2 = theta1, theta2
-        planar_arm.re_orient()
-        planar_arm.add_arm(arm_colors[count % len(arm_colors)])
+        planar_arm.change_orientation()
+        planar_arm.add_more_arm(arm_colors[count % len(arm_colors)])
     show_scene(ax)
