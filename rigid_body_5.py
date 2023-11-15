@@ -19,22 +19,22 @@ def find_distance(car1, car2):
 
 
 # samples random configuration (x,y,theta)
-def sample():
+def sizes():
     return random.random() * 2, random.random() * 2, random.uniform(-pi, pi)
 
 
 # Just reordering so we can reuse code
-def get_k_neighbors(currConfig, otherConfigs, k, dist_fn=None):
+def kneighbors(currConfig, otherConfigs, k, dist_fn=None):
     return find_smallest_distances(otherConfigs, currConfig, k)
 
 
 # Assumes we already added the obstacles as an instance of the CarController obj
-def collides(rigid_body: 'CarController', config):
+def check_collides(rigid_body: 'CarController', config):
     reposition_car(config, rigid_body)
     return not check_car(rigid_body.car, rigid_body.obstacles) or not check_boundary(rigid_body.car)
 
 
-def prm_animation_fn(config, edges, iters, ax):
+def animate(config, edges, iters, ax):
     x1, y1, _ = config
     plt.scatter(x1, y1, c='g')
     for edge in edges:
@@ -46,7 +46,7 @@ def prm_animation_fn(config, edges, iters, ax):
 
 
 # Almost the same A star as we have in arm 5 with a small tweak for distance function
-def A_star(startConfig, goalConfig, Graph, dist_fn):
+def Astar_algo(startConfig, goalConfig, Graph, dist_fn):
     def get_path(config):
         path = []
         while config:
@@ -71,7 +71,7 @@ def A_star(startConfig, goalConfig, Graph, dist_fn):
     return False, []
 
 
-def dfs(graph, src, goal, visited=None, path=None):
+def depthFirstSearch(graph, src, goal, visited=None, path=None):
     if visited is None:
         visited = set()
     if path is None:
@@ -82,7 +82,7 @@ def dfs(graph, src, goal, visited=None, path=None):
         return path
     for neighbor in graph[src].edges:
         if neighbor not in visited:
-            new_path = dfs(graph, neighbor, goal, visited, path.copy())
+            new_path = depthFirstSearch(graph, neighbor, goal, visited, path.copy())
             if new_path:
                 return new_path
     return None
@@ -103,13 +103,13 @@ def main():
     rig_body.car.set_angle(degrees(start_config[2]))
 
     # Generate PRM graph
-    graph = probabilistic_roadmap(100, get_k_neighbors, 3, sample, rig_body, collides, find_distance, interpolate,
-                                  start_config, goal_config, (0, 2), 0.05, prm_animation_fn)
+    graph = probabilistic_roadmap(100, kneighbors, 3, sizes, rig_body, check_collides, find_distance, interpolate,
+                                  start_config, goal_config, (0, 2), 0.05, animate)
     print('PRM finished')
     plt.close()
 
     # Search for a path using A*
-    var, path = A_star(start_config, goal_config, graph, find_distance)
+    var, path = Astar_algo(start_config, goal_config, graph, find_distance)
     if var:
         # If a path is found, visualize it
         all_points = [point for i in range(len(path) - 1) for point in graph[path[i]].roads[path[i + 1]]]
