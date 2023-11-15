@@ -117,7 +117,7 @@ class PlanarArm:
     def collision_on_spawn(self, poly):
         to_delete = []
         for i, polygon in enumerate(self.polygons):
-            if collides_SAT(poly, polygon):
+            if SAT_Collides(poly, polygon):
                 to_delete.append(i)
         self.polygons = np.delete(self.polygons, to_delete, 0)
 
@@ -125,7 +125,7 @@ class PlanarArm:
     def collides(self, polygon1, polygon2):
         self.plot_arm()
 
-        if any(collides_SAT(part, polygon)
+        if any(SAT_Collides(part, polygon)
                for polygon in self.polygons for part in self.robot):
             self.theta1, self.theta2 = polygon1, polygon2
             self.plot_arm()
@@ -159,7 +159,7 @@ class PlanarArm:
             self.robot.clear()
             self.make_robot()
 
-            if any(collides_SAT(part, polygon)
+            if any(SAT_Collides(part, polygon)
                    for polygon in self.polygons for part in self.robot):
                 data[x, y] = 1
 
@@ -274,17 +274,17 @@ class Control_Arm:
         circles = [self.joint1, self.joint2, self.joint3]
         rectangles = [Control_Arm.get_rectangle_angles(self.anchor1, self.rwid, self.rlen1, self.theta1 - np.pi / 2),
                       Control_Arm.get_rectangle_angles(self.anchor2, self.rwid, self.rlen2, self.theta2 - np.pi / 2)]
-        circ_boxes = [bound_circle(circle, self.rad) for circle in circles]
-        rec_boxes = bound_polygons(rectangles)
-        poly_boxes = bound_polygons(self.polygons)
+        circ_boxes = [bounding_for_circle(circle, self.rad) for circle in circles]
+        rec_boxes = bounding(rectangles)
+        poly_boxes = bounding(self.polygons)
 
         possible_circle_collisions = [(circles[i], self.polygons[j]) for i in range(len(circles))
                                       for j in range(len(self.polygons)) if
-                                      check_box_collision(circ_boxes[i], poly_boxes[j])]
+                                      box_col(circ_boxes[i], poly_boxes[j])]
 
         possible_rect_collisions = [(rectangles[i], self.polygons[j]) for i in range(len(rectangles))
                                     for j in range(len(self.polygons)) if
-                                    check_box_collision(rec_boxes[i], poly_boxes[j])]
+                                    box_col(rec_boxes[i], poly_boxes[j])]
 
         colliding_polygons = []
         joint_coll = [False] * 3
